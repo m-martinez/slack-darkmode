@@ -11,5 +11,5 @@ Usage:
 > git clone https://github.com/m-martinez/slack-darkmode.git
 > cd slack-darkmode
 > chmod +x slack-darkmode
-> sudo -E ./slack-darkmode 
+> sudo ./slack-darkmode 
 ```
