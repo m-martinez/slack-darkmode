@@ -5,12 +5,9 @@
 #
 
 
-SOURCE_CSS_PATH=/tmp/slack-darkmode.css
-SOURCE_THEME_URL=/css/black.css
+SOURCE_CSS_PATH=./css/black.css
 ENTRYPOINT_PATH=/Applications/Slack.app/Contents/Resources/app.asar.unpacked/src/static/ssb-interop.js
 TARGET_CSS_PATH=/Applications/Slack.app/Contents/Resources/slack-darkmode.css
-
-wget -O $SOURCE_CSS_PATH $SOURCE_THEME_URL
 
 echo "Closing Slack..."
 osascript -e 'quit app "Slack"'
