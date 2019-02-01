@@ -6,7 +6,7 @@
 
 
 SOURCE_CSS_PATH=/tmp/slack-darkmode.css
-SOURCE_THEME_URL=https://raw.githubusercontent.com/laCour/slack-night-mode/master/css/raw/black.css
+SOURCE_THEME_URL=/css/black.css
 ENTRYPOINT_PATH=/Applications/Slack.app/Contents/Resources/app.asar.unpacked/src/static/ssb-interop.js
 TARGET_CSS_PATH=/Applications/Slack.app/Contents/Resources/slack-darkmode.css
 
@@ -52,4 +52,3 @@ EOF
 echo "$SNIPPET" >> $ENTRYPOINT_PATH
 echo "Done! Re-opening slack!"
 open -a Slack
-
