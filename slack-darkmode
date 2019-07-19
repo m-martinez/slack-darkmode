@@ -4,48 +4,57 @@
 # Alters Slack App package contents to include a style shee that is easier on the eyes
 #
 
+set -e
 
-SOURCE_CSS_PATH=./css/black.css
-ENTRYPOINT_PATH=/Applications/Slack.app/Contents/Resources/app.asar.unpacked/src/static/ssb-interop.js
-TARGET_CSS_PATH=/Applications/Slack.app/Contents/Resources/slack-darkmode.css
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+APP_MACOS=/Applications/Slack.app/Contents/Resources
+APP_LINUX=/usr/lib/slack/resources
+if test -d $BASE_PATH_MACOS; then
+  APP=$APP_MACOS
+  OS="macos"
+elif test -d $BASE_PATH_LINUX; then
+  APP=$APP_LINUX
+  OS="linux"
+else
+	echo "Can't find slack resource directory"
+	exit 1
+fi
+CSS=slack-darkmode.css
+ASAR=app.asar
 
-echo "Closing Slack..."
-osascript -e 'quit app "Slack"'
-
-echo "Copying dark theme CSS..."
-cp $SOURCE_CSS_PATH $TARGET_CSS_PATH
-
-if [[ ! -f "$ENTRYPOINT_PATH.orig" ]]; then
-  echo "Making a backup of the entrypoint file..."
-  cp "$ENTRYPOINT_PATH" "$ENTRYPOINT_PATH.orig"
+# Ensure we're working with a clean bundle
+if [[ ! -f "$APP/app.asar.orig" ]]; then
+  echo "Making backup..."
+  sudo cp -v $APP/$ASAR $APP/$ASAR.orig
+else
+  sudo cp -v $APP/$ASAR.orig $APP/$ASAR
 fi
 
-echo "Resetting entrypoint file..."
-cp "$ENTRYPOINT_PATH.orig" "$ENTRYPOINT_PATH"
-
 echo "Injecting dark theme entrypoint..."
-read -r -d '' SNIPPET <<'EOF'
-
+sudo cp -v $HERE/$CSS $APP/$CSS
+mkdir -p $HERE/tmp
+asar extract $APP/$ASAR $HERE/tmp/$ASAR.tmp
+tee -a $HERE/tmp/$ASAR.tmp/dist/ssb-interop.bundle.js <<-EOF
 ///////////////////////////////////////////////////////////////////////////////
 //
 // Injected by slack-darkmode script
 // This snipped needs to be re-added everytime you update Slack
 //
-
 document.addEventListener('DOMContentLoaded', function() {
-  let fs = require('fs');
-  let filePath = '/Applications/Slack.app/Contents/Resources/slack-darkmode.css';
-  let tt__customCss = `.menu ul li a:not(.inline_menu_link) {color: #fff !important;}`
-  fs.readFile(filePath, {encoding: 'utf-8'}, function(err, css) {
+  require('fs').readFile('$APP/$CSS', {encoding: 'utf-8'}, function(err, css) {
     if (!err) {
-      $("<style></style>").appendTo('head').html(css + tt__customCss);
-      $("<style></style>").appendTo('head').html('#reply_container.upload_in_threads .inline_message_input_container {background: padding-box #545454}');
-      $("<style></style>").appendTo('head').html('.p-channel_sidebar {background: #363636 !important}');
-      $("<style></style>").appendTo('head').html('#client_body:not(.onboarding):not(.feature_global_nav_layout):before {background: inherit;}');
+      \$("<style></style>").appendTo('head').html(css);
     }
   });
 });
 EOF
-echo "$SNIPPET" >> $ENTRYPOINT_PATH
-echo "Done! Re-opening slack!"
-open -a Slack
+asar pack tmp/$ASAR.tmp $HERE/tmp/$ASAR
+sudo cp -v $HERE/tmp/$ASAR $APP/$ASAR
+
+echo "Done! restarting slack!"
+killall slack
+if [ "$OS" = "macos" ]; then
+  open -a Slack
+elif ["$OS" = "linux" ]; then
+  slack
+fi
